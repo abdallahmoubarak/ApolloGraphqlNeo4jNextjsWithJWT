@@ -1,0 +1,35 @@
+import { resolvers } from "./resolvers/index";
+import neo4j from "neo4j-driver";
+import { Neo4jGraphQL } from "@neo4j/graphql";
+import { typeDefs } from "./typeDefs";
+import { ApolloServer } from "@apollo/server";
+
+declare const process: {
+  env: {
+    NEXT_PUBLIC_JWT_SECRET: string;
+    NEXT_PUBLIC_NEO4J_PASSWORD: string;
+    NEXT_PUBLIC_NEO4J_USERNAME: string;
+    NEXT_PUBLIC_NEO4J_URI: string;
+  };
+};
+
+export const driver = neo4j.driver(
+  process.env.NEXT_PUBLIC_NEO4J_URI,
+  neo4j.auth.basic(
+    process.env.NEXT_PUBLIC_NEO4J_USERNAME,
+    process.env.NEXT_PUBLIC_NEO4J_PASSWORD,
+  ),
+);
+
+const neoSchema = new Neo4jGraphQL({
+  typeDefs,
+  resolvers,
+  driver,
+  features: {
+    authorization: { key: process.env.NEXT_PUBLIC_JWT_SECRET },
+  },
+});
+
+export const server = new ApolloServer({
+  schema: await neoSchema.getSchema(),
+});
